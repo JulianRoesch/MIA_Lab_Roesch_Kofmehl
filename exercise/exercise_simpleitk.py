@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import SimpleITK as sitk
-
+from PIL import Image
 try:
     import exercise.helper as helper
 except ImportError:
@@ -17,15 +17,20 @@ def load_image(img_path, is_label_img):
     # todo: if 'is_label_img' is True use argument outputPixelType=sitk.sitkUInt8,
     #  else use outputPixelType=sitk.sitkFloat32
 
-    pixel_type = None  # todo: modify here
-    img = None  # todo: modify here
+    if is_label_img:
+        pixel_type=sitk.sitkUInt8
+    else:
+        pixel_type=sitk.sitkFloat32
+
+
+    img = sitk.ReadImage(img_path, pixel_type)
 
     return img
 
 
 def to_numpy_array(img):
     # todo: transform the SimpleITK image to a numpy ndarray (hint: 'GetArrayFromImage')
-    np_img = None  # todo: modify here
+    np_img = sitk.GetArrayFromImage(img)
 
     return np_img
 
@@ -35,29 +40,31 @@ def to_sitk_image(np_image, reference_img):
     # todo: do not forget to copy meta-information (e.g., spacing, origin, etc.) from the reference image
     #  (hint: 'CopyInformation')! (otherwise defaults are set)
 
-    img = None  # todo: modify here
-    # todo: ...
-
+    img = sitk.GetImageFromArray(np_image)
+    img.CopyInformation(reference_img)
     return img
 
 
 def register_images(img, label_img, atlas_img):
-    registration_method = _get_registration_method(atlas_img, img)  # type: sitk.ImageRegistrationMethod
+    registration_method = _get_registration_method(atlas_img, img)  # type sitk.ImageRegistrationMethod
+
+
     # todo: execute the registration_method to the img (hint: fixed=atlas_img, moving=img)
     # the registration returns the transformation of the moving image (parameter img) to the space of
     # the atlas image (atlas_img)
-    transform = None  # todo: modify here
+
+    transform = registration_method.GetInitialTransform() # todo: modify here
 
     # todo: apply the obtained transform to register the image (img) to the atlas image (atlas_img)
     # hint: 'Resample' (with referenceImage=atlas_img, transform=transform, interpolator=sitkLinear,
     # defaultPixelValue=0.0, outputPixelType=img.GetPixelIDValue())
-    registered_img = None  # todo: modify here
+    registered_img = sitk.Resample(img,referenceImage=atlas_img, transform=transform, interpolator=sitk.sitkLinear,defaultPixelValue=0.0, outputPixelType=img.GetPixelIDValue())
 
     # todo: apply the obtained transform to register the label image (label_img) to the atlas image (atlas_img), too
     # be careful with the interpolator type for label images!
     # hint: 'Resample' (with interpolator=sitkNearestNeighbor, defaultPixelValue=0.0,
     # outputPixelType=label_img.GetPixelIDValue())
-    registered_label = None  # todo: modify here
+    registered_label = sitk.Resample(label_img, referenceImage=atlas_img,interpolator=sitk.sitkNearestNeighbor, defaultPixelValue=0.0, outputPixelType=label_img.GetPixelIDValue())
 
     return registered_img, registered_label
 
@@ -66,31 +73,34 @@ def preprocess_rescale_numpy(np_img, new_min_val, new_max_val):
     max_val = np_img.max()
     min_val = np_img.min()
     # todo: rescale the intensities of the np_img to the range [new_min_val, new_max_val]. Use numpy arithmetics only.
-    rescaled_np_img = None  # todo: modify here
+    new_diff = new_max_val - new_min_val
 
+    rescaled_np_img = np.round(((np_img - min_val) / (max_val - min_val) * new_diff) + new_min_val)
+    max_val = rescaled_np_img.max()
+    min_val = rescaled_np_img.min()
     return rescaled_np_img
 
 
 def preprocess_rescale_sitk(img, new_min_val, new_max_val):
     # todo: rescale the intensities of the img to the range [new_min_val, new_max_val] (hint: RescaleIntensity)
-    rescaled_img = None  # todo: modify here
+    rescaled_img = sitk.RescaleIntensity(img,new_min_val,new_max_val)
 
     return rescaled_img
 
 
 def extract_feature_median(img):
     # todo: apply median filter to image (hint: 'Median')
-    median_img = None  # todo: modify here
+    median_img = sitk.Median(img)
 
     return median_img
 
 
 def postprocess_largest_component(label_img):
     # todo: get the connected components from the label_img (hint: 'ConnectedComponent')
-    connected_components = None  # todo: modify here
+    connected_components = sitk.ConnectedComponent(label_img)  # todo: modify here
 
     # todo: order the component by ascending component size (hint: 'RelabelComponent')
-    relabeled_components = None  # todo: modify here
+    relabeled_components = sitk.RelabelComponent(connected_components)  # todo: modify here
 
     largest_component = relabeled_components == 1  # zero is background
     return largest_component
