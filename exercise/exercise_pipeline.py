@@ -35,7 +35,7 @@ def collect_image_paths(data_dir):
     dir_filter = futil.DataDirectoryFilter()
 
     # todo: create an instance of futil.FileSystemDataCrawler and pass the corresponding arguments
-    crawler_ = None  # todo: modify here
+    crawler_ = futil.FileSystemDataCrawler  # todo: modify here
 
     return crawler_
 
