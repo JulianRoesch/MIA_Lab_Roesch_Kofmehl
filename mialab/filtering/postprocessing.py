@@ -43,7 +43,6 @@ class ImagePostProcessing(pymia_fltr.Filter):
         return 'ImagePostProcessing:\n' \
             .format(self=self)
 
-
 # class DenseCRFParams(pymia_fltr.FilterParams):
 #     """Dense CRF parameters."""
 #     def __init__(self, img_t1: sitk.Image, img_t2: sitk.Image, img_proba: sitk.Image):
