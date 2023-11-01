@@ -31,15 +31,22 @@ class ImageNormalization(pymia_fltr.Filter):
 
         # todo: normalize the image using numpy
         #warnings.warn('No normalization implemented. Returning unprocessed image.')
-        max_val = img_arr.max()
-        min_val = img_arr.min()
-        new_min_val = 0
-        new_max_val = 255
-        new_diff = new_max_val - new_min_val
 
-        rescaled_img_arr = np.round(((img_arr - min_val) / (max_val - min_val) * new_diff) + new_min_val)
+        #max_val = img_arr.max()
+        #min_val = img_arr.min()
+        #new_min_val = 0
+        #new_max_val = 255
+        #new_diff = new_max_val - new_min_val
 
-        img_out = sitk.GetImageFromArray(rescaled_img_arr)
+        #rescaled_img_arr = np.round(((img_arr - min_val) / (max_val - min_val) * new_diff) + new_min_val)
+
+        # Z-score standardization
+        mean = np.mean(img_arr)
+        std_dev = np.std(img_arr)
+        standardized_data = (img_arr - mean) / std_dev
+
+
+        img_out = sitk.GetImageFromArray(standardized_data)
         img_out.CopyInformation(image)
 
         return img_out
@@ -81,15 +88,22 @@ class SkullStripping(pymia_fltr.Filter):
             params (SkullStrippingParameters): The parameters with the brain mask.
 
         Returns:
-            sitk.Image: The normalized image.
+            masked_img (sitk.Image:) The masked image.
         """
 
         # remove the skull from the image by using the brain mask
         # Mask input image with binary mask
+        img_arr = sitk.GetArrayFromImage(image)
         mask = params.img_mask  # the brain mask
+        mask_arr = sitk.GetArrayFromImage(mask)
+
+        img_arr[mask_arr == 0] = 0
 
 
-        return image
+
+        image_return = sitk.GetImageFromArray(img_arr)
+
+        return image_return
 
     def __str__(self):
         """Gets a printable string representation.
