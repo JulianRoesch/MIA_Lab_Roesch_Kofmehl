@@ -86,7 +86,7 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
     t = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     result_dir = os.path.join(result_dir, t)
     os.makedirs(result_dir, exist_ok=True)
-
+    
     print('-' * 5, 'Testing...')
 
     # initialize evaluator
