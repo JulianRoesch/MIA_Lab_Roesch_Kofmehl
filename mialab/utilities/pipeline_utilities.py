@@ -68,22 +68,27 @@ class FeatureExtractor:
             structure.BrainImage: The image with extracted features.
         """
         # todo: add T2w features
-        warnings.warn('No features from T2-weighted image extracted.')
+        t2w_image = self.img.images[structure.BrainImageTypes.T2w]
 
-        if self.coordinates_feature:
-            atlas_coordinates = fltr_feat.AtlasCoordinates()
-            self.img.feature_images[FeatureImageTypes.ATLAS_COORD] = \
-                atlas_coordinates.execute(self.img.images[structure.BrainImageTypes.T1w])
+        if t2w_image is not None:
+            if self.coordinates_feature:
+                atlas_coordinates = fltr_feat.AtlasCoordinates()
+                self.img.feature_images[FeatureImageTypes.ATLAS_COORD] = \
+                    atlas_coordinates.execute(self.img.images[structure.BrainImageTypes.T1w])
 
-        if self.intensity_feature:
-            self.img.feature_images[FeatureImageTypes.T1w_INTENSITY] = self.img.images[structure.BrainImageTypes.T1w]
+            if self.intensity_feature:
+                self.img.feature_images[FeatureImageTypes.T1w_INTENSITY] = self.img.images[
+                    structure.BrainImageTypes.T1w]
 
-        if self.gradient_intensity_feature:
-            # compute gradient magnitude images
-            self.img.feature_images[FeatureImageTypes.T1w_GRADIENT_INTENSITY] = \
-                sitk.GradientMagnitude(self.img.images[structure.BrainImageTypes.T1w])
+            if self.gradient_intensity_feature:
+                # Compute gradient magnitude images for T1w
+                self.img.feature_images[FeatureImageTypes.T1w_GRADIENT_INTENSITY] = \
+                    sitk.GradientMagnitude(self.img.images[structure.BrainImageTypes.T1w])
 
-        self._generate_feature_matrix()
+            self._generate_feature_matrix()
+
+        else:
+            warnings.warn('No features from T2-weighted image extracted.')
 
         return self.img
 
@@ -288,10 +293,10 @@ def init_evaluator() -> eval_.Evaluator:
         eval.Evaluator: An evaluator.
     """
 
-    # initialize metrics
-    metrics = [metric.DiceCoefficient()]
-    # todo: add hausdorff distance, 95th percentile (see metric.HausdorffDistance)
-    warnings.warn('Initialized evaluation with the Dice coefficient. Do you know other suitable metrics?')
+    metrics = [
+        metric.DiceCoefficient(),
+        metric.HausdorffDistance(percentile=0.95),
+    ]
 
     # define the labels to evaluate
     labels = {1: 'WhiteMatter',
