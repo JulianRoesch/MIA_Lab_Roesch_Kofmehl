@@ -4,9 +4,9 @@ Image post-processing aims to alter images such that they depict a desired repre
 """
 import warnings
 
-# import numpy as np
-# import pydensecrf.densecrf as crf
-# import pydensecrf.utils as crf_util
+import numpy as np
+import pydensecrf.densecrf as crf
+import pydensecrf.utils as crf_util
 import pymia.filtering.filter as pymia_fltr
 import SimpleITK as sitk
 
@@ -18,7 +18,7 @@ class ImagePostProcessing(pymia_fltr.Filter):
         """Initializes a new instance of the ImagePostProcessing class."""
         super().__init__()
 
-    def execute(self, image: sitk.Image, params: pymia_fltr.FilterParams = None) -> sitk.Image:
+    def execute(self, image: sitk.Image, params: pymia_fltr.FilterParams) -> sitk.Image:
         """Registers an image.
 
         Args:
@@ -28,11 +28,17 @@ class ImagePostProcessing(pymia_fltr.Filter):
         Returns:
             sitk.Image: The post-processed image.
         """
+        # execute a dense CRF filter as post processing with an sitk.Image as an input
+        if image:
+            sigma = 1.0
+            smoothed_image = sitk.SmoothingRecursiveGaussian(image, sigma)
+
+            return smoothed_image
+        else:
+            return None
 
         # todo: replace this filter by a post-processing - or do we need post-processing at all?
-        warnings.warn('No post-processing implemented. Can you think about something?')
-
-        return image
+        # warnings.warn('No post-processing implemented. Can you think about something?')
 
     def __str__(self):
         """Gets a printable string representation.
@@ -46,6 +52,7 @@ class ImagePostProcessing(pymia_fltr.Filter):
 
 # class DenseCRFParams(pymia_fltr.FilterParams):
 #     """Dense CRF parameters."""
+#
 #     def __init__(self, img_t1: sitk.Image, img_t2: sitk.Image, img_proba: sitk.Image):
 #         """Initializes a new instance of the DenseCRFParams
 #
@@ -56,7 +63,7 @@ class ImagePostProcessing(pymia_fltr.Filter):
 #         """
 #         self.img_t1 = img_t1
 #         self.img_t2 = img_t2
-#         self.img_probability = img_probability
+#         self.img_probability = img_proba
 #
 #
 # class DenseCRF(pymia_fltr.Filter):
