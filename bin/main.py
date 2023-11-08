@@ -11,9 +11,11 @@ import warnings
 
 import SimpleITK as sitk
 import sklearn.ensemble as sk_ensemble
+import sklearn.model_selection as skmodel
 import numpy as np
 import pymia.data.conversion as conversion
 import pymia.evaluation.writer as writer
+# from tempfile import TemporaryFile
 
 try:
     import mialab.data.structure as structure
@@ -66,20 +68,36 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
                           'gradient_intensity_feature': True}
 
     # load images for training and pre-process
-    images = putil.pre_process_batch(crawler.data, pre_process_params, multi_process=False)
+    # images = putil.pre_process_batch(crawler.data, pre_process_params, multi_process=False)
 
     # generate feature matrix and label vector
-    data_train = np.concatenate([img.feature_matrix[0] for img in images])
-    labels_train = np.concatenate([img.feature_matrix[1] for img in images]).squeeze()
+    # data_train = np.concatenate([img.feature_matrix[0] for img in images])
+    # labels_train = np.concatenate([img.feature_matrix[1] for img in images]).squeeze()
+    # data_train.dump("data_train")
+    # labels_train.dump("labels_train")
+    data_train = np.load('data_train', allow_pickle=True)
+    labels_train = np.load('labels_train', allow_pickle=True)
 
     #todo: Unser Job
-    warnings.warn('Random forest parameters not properly set.')
-    forest = sk_ensemble.RandomForestClassifier(max_features=images[0].feature_matrix[0].shape[1],
-                                                n_estimators=1,
-                                                max_depth=5)
+    param_dist = {'n_estimators': np.random.randint(50, 500),
+                  'max_depth': np.random.randint(1, 20)}
+
+    # warnings.warn('Random forest parameters not properly set.')
+    # forest = sk_ensemble.RandomForestClassifier(max_features=images[0].feature_matrix[0].shape[1],
+    #                                            n_estimators=1,
+    #                                            max_depth=5)
+
+    forest = sk_ensemble.RandomForestClassifier()
+
+    rand_search = skmodel.RandomizedSearchCV(forest,
+                                             param_distributions=param_dist,
+                                             n_iter=5,
+                                             cv=5)
 
     start_time = timeit.default_timer()
-    forest.fit(data_train, labels_train)
+    fit = rand_search.fit(data_train, labels_train)
+    best_rf = fit.best_estimator_
+    print('Best hyperparameters:', best_rf)
     print(' Time elapsed:', timeit.default_timer() - start_time, 's')
 
     # create a result directory with timestamp
