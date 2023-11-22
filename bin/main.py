@@ -8,6 +8,7 @@ import os
 import sys
 import timeit
 import warnings
+import random
 
 import SimpleITK as sitk
 import sklearn.ensemble as sk_ensemble
@@ -79,13 +80,13 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
     labels_train = np.load('labels_train', allow_pickle=True)
 
     #todo: Unser Job
-    param_dist = {'n_estimators': np.random.randint(50, 500),
-                  'max_depth': np.random.randint(1, 20)}
+    #param_dist = {'n_estimators': random.sample(range(50, 500), 5),
+     #             'max_depth': random.sample(range(1, 20), 1)}
 
     # warnings.warn('Random forest parameters not properly set.')
-    # forest = sk_ensemble.RandomForestClassifier(max_features=images[0].feature_matrix[0].shape[1],
-    #                                            n_estimators=1,
-    #                                            max_depth=5)
+    forest = sk_ensemble.RandomForestClassifier(max_features=images[0].feature_matrix[0].shape[1],
+                                                n_estimators=1,
+                                                max_depth=5)
 
     forest = sk_ensemble.RandomForestClassifier()
 

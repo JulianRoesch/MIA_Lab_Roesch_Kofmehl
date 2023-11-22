@@ -4,16 +4,7 @@ import csv
 import pandas as pd
 
 
-def main():
-    # todo: load the "results.csv" file from the mia-results directory
-    # todo: read the data into a list
-    # todo: plot the Dice coefficients per label (i.e. white matter, gray matter, hippocampus, amygdala, thalamus)
-    #  in a boxplot
-
-    # alternative: instead of manually loading/reading the csv file you could also use the pandas package
-    # but you will need to install it first ('pip install pandas') and import it to this file ('import pandas as pd')
-
-    date = "2023-11-08-08-14-05"
+    date = "2023-10-25-08-45-57"
     csv_string = "mia-result/" + date + "/results.csv"
     data = pd.read_csv(csv_string)
 
@@ -33,26 +24,27 @@ def main():
         Number.append(string[:P1])
         Label.append(string[P1+1:P2])
         Value_Dice.append(float(string[P2+1:P3]))
-        Value_Haus.append(float(string[P3 + 1:]))
+        #Value_Haus.append(float(string[P3 + 1:]))
     #sort data to labels
-    #"Amygdala" "GeryMatter" "Hippocampus" "Thalamus" "WhiteMatter"
+    #"Amygdala" "GreyMatter" "Hippocampus" "Thalamus" "WhiteMatter"
 
     print(Label[1::5])
-    Matrix = np.zeros([5,20])
+    Matrix_DC = Matrix_HD  = np.zeros([5,20])
 
-    Matrix[0][:] = Value_Dice[0::5]
-    Matrix[1][:] = Value_Dice[1::5]
-    Matrix[2][:] = Value_Dice[2::5]
-    Matrix[3][:] = Value_Dice[3::5]
-    Matrix[4][:] = Value_Dice[4::5]
+    for cnt in range(5):
+        Matrix_DC[cnt][:] = Value_Dice[cnt::5]
+        Matrix_HD[cnt][:] = Value_Dice[cnt::5]
 
 
-    #boxplot
-    labels = ["Amygdala" ,"GeryMatter" ,"Hippocampus" ,"Thalamus", "WhiteMatter"]
-    fig, axs = plt.subplots()
-    axs.boxplot(Matrix.transpose(),labels=labels)
-    axs.set_title('Dice Coefficients')
+    #boxplot2
+    labels = ["Amygdala" ,"GreyMatter" ,"Hippocampus" ,"Thalamus", "WhiteMatter"]
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2,figsize=(14, 5))
+    ax1.boxplot(Matrix_DC.transpose(),labels=labels)
+    ax1.set_title('Dice coefficients')
+    ax1.set_ylabel('Dice Coeff.')
+
+    ax2.boxplot(Matrix_HD.transpose(),labels=labels)
+    ax2.set_title('Hausdorff distance')
+    ax2.set_ylabel('Hausdorff')
+    fig.suptitle(csv_string)
     plt.show()
-
-if __name__ == '__main__':
-    main()
