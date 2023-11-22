@@ -292,11 +292,9 @@ def init_evaluator() -> eval_.Evaluator:
     Returns:
         eval.Evaluator: An evaluator.
     """
-
     metrics = [
         metric.DiceCoefficient(),
-        metric.HausdorffDistance(percentile=0.95),
-    ]
+        metric.HausdorffDistance(percentile=0.95, metric='HDRFDST95')]
 
     # define the labels to evaluate
     labels = {1: 'WhiteMatter',

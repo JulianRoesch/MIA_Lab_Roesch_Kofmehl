@@ -13,7 +13,7 @@ def main():
     # alternative: instead of manually loading/reading the csv file you could also use the pandas package
     # but you will need to install it first ('pip install pandas') and import it to this file ('import pandas as pd')
 
-    date = "2023-11-08-08-14-05"
+    date = "2023-11-15-09-23-54"
     csv_string = "mia-result/" + date + "/results.csv"
     data = pd.read_csv(csv_string)
 
