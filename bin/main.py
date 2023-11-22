@@ -9,6 +9,7 @@ import sys
 import timeit
 import random
 import warnings
+import random
 
 import SimpleITK as sitk
 import sklearn.ensemble as sk_ensemble
@@ -85,7 +86,9 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
     labels_train = np.load('labels_train', allow_pickle=True)
 
     #todo: Unser Job
+
     KNeighbour = KNeighborsClassifier(n_neighbors=5)
+
 
     start_time = timeit.default_timer()
     fit = KNeighbour.fit(data_train, labels_train)
