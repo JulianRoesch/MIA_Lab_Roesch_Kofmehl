@@ -16,12 +16,24 @@ import sklearn.ensemble as sk_ensemble
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.datasets import make_classification
 import sklearn.model_selection as skmodel
 import numpy as np
 import pymia.data.conversion as conversion
 import pymia.evaluation.writer as writer
+import pandas as pd
+
 # from tempfile import TemporaryFile
 
 try:
@@ -85,13 +97,54 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
     data_train = np.load('data_train', allow_pickle=True)
     labels_train = np.load('labels_train', allow_pickle=True)
 
-    #todo: Unser Job
 
-    KNeighbour = KNeighborsClassifier(n_neighbors=5)
+    # Define the Gradient Boosting Classifier
+    gb_classifier = GradientBoostingClassifier()
+
+    # Define the hyperparameters grid for GridSearchCV
+    param_grid = {
+        'n_estimators': [50, 100, 150],
+        'learning_rate': [0.01, 0.1, 0.5],
+        'max_depth': [3, 5, 7],
+        'min_samples_split': [2, 4, 6]
+    }
+
+    # Create the GridSearchCV object
+    grid_search = GridSearchCV(estimator=gb_classifier, param_grid=param_grid, cv=5, n_jobs=-1, verbose=2)
+
+    # Fit the GridSearchCV object to the training data
+    grid_search.fit(data_train, labels_train)
+
+    # Displaying all parameter combinations and their scores
+    results = pd.DataFrame(grid_search.cv_results_)
+    results = results[['param_n_estimators', 'param_learning_rate', 'param_max_depth', 'param_min_samples_split', 'mean_test_score']]
+    results = results.sort_values(by='mean_test_score', ascending=False)
+    print(results)
+
+    # Save results to a CSV file
+    results.to_csv('grid_search_results_gb.csv', index=False)
+
 
 
     start_time = timeit.default_timer()
-    fit = KNeighbour.fit(data_train, labels_train)
+
+    # Get the best parameters and best score
+    best_params = grid_search.best_params_
+    best_score = grid_search.best_score_
+
+    print("\nBest Parameters:", best_params)
+    print("Best Score:", best_score)
+
+    # Evaluate the model on the test set
+    best_gb = grid_search.best_estimator_
+
+
+    print("\nBest Parameters:", best_params)
+    print("Best Score:", best_score)
+
+    # Evaluate the model on the test set
+    best_rf = grid_search.best_estimator_
+
 
     print(' Time elapsed:', timeit.default_timer() - start_time, 's')
 
@@ -99,7 +152,7 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
     t = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     result_dir = os.path.join(result_dir, t)
     os.makedirs(result_dir, exist_ok=True)
-    
+
     print('-' * 5, 'Testing...')
 
     # initialize evaluator
@@ -121,8 +174,8 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
         print('-' * 10, 'Testing', img.id_)
 
         start_time = timeit.default_timer()
-        predictions = KNeighbour.predict(img.feature_matrix[0])
-        probabilities = KNeighbour.predict_proba(img.feature_matrix[0])
+        predictions = best_gb.predict(img.feature_matrix[0])
+        probabilities = best_gb.predict_proba(img.feature_matrix[0])
         print(' Time elapsed:', timeit.default_timer() - start_time, 's')
 
         # convert prediction and probabilities back to SimpleITK images
@@ -137,28 +190,28 @@ def main(result_dir: str, data_atlas_dir: str, data_train_dir: str, data_test_di
         images_probabilities.append(image_probabilities)
 
     # post-process segmentation and evaluate with post-processing
-    post_process_params = {'simple_post': True}
-    images_post_processed = putil.post_process_batch(images_test, images_prediction, images_probabilities,
-                                                     post_process_params, multi_process=True)
-
+    # post_process_params = {'simple_post': True}
+    # images_post_processed = putil.post_process_batch(images_test, images_prediction, images_probabilities,
+    #                                                  post_process_params, multi_process=True)
+    #
     for i, img in enumerate(images_test):
-        evaluator.evaluate(images_post_processed[i], img.images[structure.BrainImageTypes.GroundTruth],
-                           img.id_ + '-PP')
-
-        # save results
+        #     evaluator.evaluate(images_post_processed[i], img.images[structure.BrainImageTypes.GroundTruth],
+        #                        img.id_ + '-PP')
+        #
+        #     # save results
         sitk.WriteImage(images_prediction[i], os.path.join(result_dir, images_test[i].id_ + '_SEG.mha'), True)
-        sitk.WriteImage(images_post_processed[i], os.path.join(result_dir, images_test[i].id_ + '_SEG-PP.mha'), True)
+    #     sitk.WriteImage(images_post_processed[i], os.path.join(result_dir, images_test[i].id_ + '_SEG-PP.mha'), True)
 
     # use two writers to report the results
     os.makedirs(result_dir, exist_ok=True)  # generate result directory, if it does not exists
-    result_file = os.path.join(result_dir, 'results.csv')
+    result_file = os.path.join(result_dir, t + '.csv')
     writer.CSVWriter(result_file).write(evaluator.results)
 
     print('\nSubject-wise results...')
     writer.ConsoleWriter().write(evaluator.results)
 
     # report also mean and standard deviation among all subjects
-    result_summary_file = os.path.join(result_dir, 'results_summary.csv')
+    result_summary_file = os.path.join(result_dir, t + '_summary.csv')
     functions = {'MEAN': np.mean, 'STD': np.std}
     writer.CSVStatisticsWriter(result_summary_file, functions=functions).write(evaluator.results)
     print('\nAggregated statistic results...')

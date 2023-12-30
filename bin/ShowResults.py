@@ -14,7 +14,12 @@ save_boxplot = False
 
 Data_DC = Data_HD = np.zeros([5,10,np.size(dirlist)])
 for c in range(np.size(dirlist)):
-    csv_string = "mia-result/" + dirlist[c] + "/results.csv"
+
+    path = root + dirlist[c]
+    filenames = next(os.walk(path), (None, None, []))[2]  # [] if no file)
+    filename = [match for match in filenames if "csv" in match]
+
+    csv_string = path + "/" + filename[0]
     data = pd.read_csv(csv_string)
 
     Number = []
@@ -44,8 +49,10 @@ for c in range(np.size(dirlist)):
     for cnt2 in range(5):
         Matrix_DC[cnt2][:] = Value_Dice[cnt2::5]
         Matrix_HD[cnt2][:] = Value_Haus[cnt2::5]
+
     print("\n Dice", Matrix_DC)
     print("\n Haus", Matrix_HD)
+
     if show_boxplot:
         # boxplot2
         labels = ["Amygdala", "GreyMatter", "Hippocampus", "Thalamus", "WhiteMatter"]
@@ -63,6 +70,3 @@ for c in range(np.size(dirlist)):
         if save_boxplot:
             plt.savefig(csv_string + ".pdf", dpi=150)
 
-
-    # Data_DC[:,:,c] = Matrix_DC
-    # Data_HD[:,:,c] = Matrix_HD
